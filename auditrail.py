@@ -4,11 +4,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Tratamiento de los datos
-file_path = r"\\servernas\Validaciones-Metrología\COORVSC-CALIFICACIONES\CALIFICACIONES\EQUIPOS\Secador de Lecho Fluido Glatt 600 kg N°4\calificación 2025\VSC\audit.csv" # Reemplaza con la ruta del archivo cargado
+#file_path = r"\\servernas\Validaciones-Metrología\COORVSC-CALIFICACIONES\CALIFICACIONES\EQUIPOS\Secador de Lecho Fluido Glatt 600 kg N°4\calificación 2025\VSC\audit.csv" # Reemplaza con la ruta del archivo cargado
 
 # Leer el archivo original y procesar las líneas
 processed_data = []
-with open(file_path, 'r', encoding='latin1') as file:
+with open("audit.csv", 'r', encoding='latin1') as file:
     for line in file:
         if line.strip():  # Ignorar líneas vacías
             processed_data.append(line.strip())
