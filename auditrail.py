@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 # Leer el archivo original y procesar las líneas
 processed_data = []
-with open("audit.csv", 'r', encoding='latin1') as file:
+with open("Audit1.csv", 'r', encoding='latin1') as file:
     for line in file:
         if line.strip():  # Ignorar líneas vacías
             processed_data.append(line.strip())
