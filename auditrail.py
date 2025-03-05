@@ -215,7 +215,32 @@ if uploaded_file is not None:
         if not high_activity_users.empty:
             st.warning("⚠️ Usuarios con actividad inusualmente alta:")
             st.write(high_activity_users)
-
+        # Verificar si hay datos fuera del horario de trabajo
+        # Verificar si hay datos fuera del horario de trabajo
+    if not out_of_work_data.empty:
+        # Asegurar que la columna 'Marca de tiempo' esté en formato datetime
+        out_of_work_data['Marca de tiempo'] = pd.to_datetime(out_of_work_data['Marca de tiempo'], errors='coerce')
+    
+        # Extraer la hora de los eventos fuera del horario de trabajo
+        out_of_work_data['Hora'] = out_of_work_data['Marca de tiempo'].dt.hour
+    
+        # Contar la cantidad de eventos por hora
+        event_counts = out_of_work_data['Hora'].value_counts().sort_index()
+    
+        # Crear el gráfico de barras
+        plt.figure(figsize=(10, 5))
+        sns.barplot(x=event_counts.index, y=event_counts.values, palette="Blues")
+        plt.xlabel("Hora del día")
+        plt.ylabel("Cantidad de eventos fuera del horario")
+        plt.title("Eventos fuera del horario de trabajo")
+        plt.xticks(range(0, 24))  # Asegurar etiquetas de 0 a 23 horas
+    
+        # Mostrar el gráfico en Streamlit
+        st.header("Eventos fuera del horario de trabajo")
+        st.pyplot(plt)
+    
+    else:
+        st.info("No hay eventos fuera del horario de trabajo para graficar.")
     # 3. Acciones críticas
     critical_keywords = ['error', 'fallo', 'alarma', 'crítico']
     critical_changes = filtered_data[
