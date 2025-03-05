@@ -162,63 +162,64 @@ if uploaded_file is not None:
     else:
         st.warning("No hay datos disponibles para el rango de fechas seleccionado en el mapa de calor.")
 
-    # Sección de alertas y configuración de franja horaria en la barra lateral
-    st.header("Alertas del Sistema")
-    st.sidebar.header("Filtro de Franja Horaria")
+   # Sección para definir el horario de trabajo
+    st.header("Configuración del Horario de Trabajo")
+    st.sidebar.header("Definir Lote de Trabajo")
     
-    # Crear un slider que acepte intervalos de media hora (0, 0.5, 1, ..., 23.5)
-    hour_options = [i / 2 for i in range(0, 48)]  # Genera valores desde 0 hasta 23.5 en pasos de 0.5
-    hour_labels = [f"{int(h)}:{'30' if h % 1 == 0.5 else '00'}" for h in hour_options]  # Formatea las etiquetas
+    # Selección de la fecha y hora de inicio del lote
+    start_date = st.sidebar.date_input("Fecha de inicio del lote", data['Marca de tiempo'].min().date())
+    start_time_options = [i / 2 for i in range(0, 48)]  # Genera valores de 0 a 23.5 en pasos de 0.5 (media hora)
+    start_time_labels = [f"{int(h)}:{'30' if h % 1 == 0.5 else '00'}" for h in start_time_options]
     
-    start_hour_index = st.sidebar.slider(
-        "Hora de inicio (fuera de horario)", 
-        min_value=0, 
-        max_value=len(hour_options) - 1, 
-        value=44,  # 22:00 por defecto
-        format="%d",
+    start_time_index = st.sidebar.slider(
+        "Hora de inicio del lote",
+        min_value=0,
+        max_value=len(start_time_options) - 1,
+        value=16,  # 8:00 AM por defecto
         step=1
     )
+    start_hour = start_time_options[start_time_index]
     
-    end_hour_index = st.sidebar.slider(
-        "Hora de fin (fuera de horario)", 
-        min_value=0, 
-        max_value=len(hour_options) - 1, 
-        value=12,  # 06:00 por defecto
-        format="%d",
+    # Selección de la fecha y hora de fin del lote
+    end_date = st.sidebar.date_input("Fecha de fin del lote", data['Marca de tiempo'].max().date())
+    end_time_index = st.sidebar.slider(
+        "Hora de fin del lote",
+        min_value=0,
+        max_value=len(start_time_options) - 1,
+        value=40,  # 20:00 (8:00 PM) por defecto
         step=1
     )
+    end_hour = start_time_options[end_time_index]
     
-    # Obtener las horas seleccionadas desde la lista de opciones
-    start_hour = hour_options[start_hour_index]
-    end_hour = hour_options[end_hour_index]
+    # Combinar fecha y hora en formato datetime
+    start_datetime = pd.Timestamp.combine(start_date, pd.to_timedelta(start_hour, unit="h"))
+    end_datetime = pd.Timestamp.combine(end_date, pd.to_timedelta(end_hour, unit="h"))
     
-    # Mostrar las horas seleccionadas en formato HH:MM
-    st.sidebar.text(f"Inicio fuera de horario: {hour_labels[start_hour_index]} hrs")
-    st.sidebar.text(f"Fin fuera de horario: {hour_labels[end_hour_index]} hrs")
+    st.sidebar.text(f"Inicio del lote: {start_date} {start_time_labels[start_time_index]} hrs")
+    st.sidebar.text(f"Fin del lote: {end_date} {start_time_labels[end_time_index]} hrs")
     
-    # Filtrar cambios fuera del horario seleccionado
-    if start_hour <= end_hour:
-        night_changes = filtered_data[
-            (filtered_data['Marca de tiempo'].dt.hour + filtered_data['Marca de tiempo'].dt.minute / 60 >= start_hour) &
-            (filtered_data['Marca de tiempo'].dt.hour + filtered_data['Marca de tiempo'].dt.minute / 60 <= end_hour)
-        ]
+    # Filtrar eventos dentro del horario de trabajo
+    work_time_data = filtered_data[
+        (filtered_data['Marca de tiempo'] >= start_datetime) & 
+        (filtered_data['Marca de tiempo'] <= end_datetime)
+    ]
+    
+    # Identificar eventos fuera del horario de trabajo
+    out_of_work_data = filtered_data[~filtered_data.index.isin(work_time_data.index)]
+    
+    # Mostrar advertencias si hay eventos fuera del horario de trabajo
+    if not out_of_work_data.empty:
+        st.warning(f"⚠️ Eventos ocurridos fuera del horario de trabajo ({start_date} {start_time_labels[start_time_index]} - {end_date} {start_time_labels[end_time_index]}):")
+        st.write(out_of_work_data)
     else:
-        night_changes = filtered_data[
-            (filtered_data['Marca de tiempo'].dt.hour + filtered_data['Marca de tiempo'].dt.minute / 60 >= start_hour) |
-            (filtered_data['Marca de tiempo'].dt.hour + filtered_data['Marca de tiempo'].dt.minute / 60 <= end_hour)
-        ]
+        st.success("✅ No se detectaron eventos fuera del horario de trabajo.")
     
-    if not night_changes.empty:
-        st.warning(f"⚠️ Cambios realizados fuera de horario ({hour_labels[start_hour_index]} - {hour_labels[end_hour_index]}):")
-        st.write(night_changes)
-
-
-    # 2. Usuarios con alta frecuencia de cambios
-    user_activity = filtered_data['Usuario'].value_counts()
-    high_activity_users = user_activity[user_activity > user_activity.mean() + 2 * user_activity.std()]
-    if not high_activity_users.empty:
-        st.warning("⚠️ Usuarios con actividad inusualmente alta:")
-        st.write(high_activity_users)
+        # 2. Usuarios con alta frecuencia de cambios
+        user_activity = filtered_data['Usuario'].value_counts()
+        high_activity_users = user_activity[user_activity > user_activity.mean() + 2 * user_activity.std()]
+        if not high_activity_users.empty:
+            st.warning("⚠️ Usuarios con actividad inusualmente alta:")
+            st.write(high_activity_users)
 
     # 3. Acciones críticas
     critical_keywords = ['error', 'fallo', 'alarma', 'crítico']
