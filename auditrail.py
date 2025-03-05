@@ -162,29 +162,56 @@ if uploaded_file is not None:
     else:
         st.warning("No hay datos disponibles para el rango de fechas seleccionado en el mapa de calor.")
 
-    # Sección de alertas
+    # Sección de alertas y configuración de franja horaria en la barra lateral
     st.header("Alertas del Sistema")
     st.sidebar.header("Filtro de Franja Horaria")
-    start_hour = st.sidebar.slider("Hora de inicio (fuera de horario)", 0, 23, 22)
-    end_hour = st.sidebar.slider("Hora de fin (fuera de horario)", 0, 23, 6)
-
-# 1. Cambios fuera de horario
+    
+    # Crear un slider que acepte intervalos de media hora (0, 0.5, 1, ..., 23.5)
+    hour_options = [i / 2 for i in range(0, 48)]  # Genera valores desde 0 hasta 23.5 en pasos de 0.5
+    hour_labels = [f"{int(h)}:{'30' if h % 1 == 0.5 else '00'}" for h in hour_options]  # Formatea las etiquetas
+    
+    start_hour_index = st.sidebar.slider(
+        "Hora de inicio (fuera de horario)", 
+        min_value=0, 
+        max_value=len(hour_options) - 1, 
+        value=44,  # 22:00 por defecto
+        format="%d",
+        step=1
+    )
+    
+    end_hour_index = st.sidebar.slider(
+        "Hora de fin (fuera de horario)", 
+        min_value=0, 
+        max_value=len(hour_options) - 1, 
+        value=12,  # 06:00 por defecto
+        format="%d",
+        step=1
+    )
+    
+    # Obtener las horas seleccionadas desde la lista de opciones
+    start_hour = hour_options[start_hour_index]
+    end_hour = hour_options[end_hour_index]
+    
+    # Mostrar las horas seleccionadas en formato HH:MM
+    st.sidebar.text(f"Inicio fuera de horario: {hour_labels[start_hour_index]} hrs")
+    st.sidebar.text(f"Fin fuera de horario: {hour_labels[end_hour_index]} hrs")
+    
+    # Filtrar cambios fuera del horario seleccionado
     if start_hour <= end_hour:
-        # Caso normal: el horario fuera de producción no cruza la medianoche
         night_changes = filtered_data[
-            (filtered_data['Marca de tiempo'].dt.hour >= start_hour) & 
-            (filtered_data['Marca de tiempo'].dt.hour <= end_hour)
+            (filtered_data['Marca de tiempo'].dt.hour + filtered_data['Marca de tiempo'].dt.minute / 60 >= start_hour) &
+            (filtered_data['Marca de tiempo'].dt.hour + filtered_data['Marca de tiempo'].dt.minute / 60 <= end_hour)
         ]
     else:
-        # Caso en que el horario fuera de producción cruza la medianoche
         night_changes = filtered_data[
-            (filtered_data['Marca de tiempo'].dt.hour >= start_hour) | 
-            (filtered_data['Marca de tiempo'].dt.hour <= end_hour)
+            (filtered_data['Marca de tiempo'].dt.hour + filtered_data['Marca de tiempo'].dt.minute / 60 >= start_hour) |
+            (filtered_data['Marca de tiempo'].dt.hour + filtered_data['Marca de tiempo'].dt.minute / 60 <= end_hour)
         ]
-
+    
     if not night_changes.empty:
-        st.warning(f"⚠️ Cambios realizados fuera de horario ({start_hour}:00 - {end_hour}:00):")
+        st.warning(f"⚠️ Cambios realizados fuera de horario ({hour_labels[start_hour_index]} - {hour_labels[end_hour_index]}):")
         st.write(night_changes)
+
 
     # 2. Usuarios con alta frecuencia de cambios
     user_activity = filtered_data['Usuario'].value_counts()
