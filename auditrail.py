@@ -83,7 +83,7 @@ if uploaded_file is not None:
     st.write(digital_changes)
 
     # Cambios representativos durante el proceso
-    st.header("Cambios Representativos")
+    
     representative_changes = filtered_data.groupby('Texto').size().sort_values(ascending=False).head(10)
    
 
