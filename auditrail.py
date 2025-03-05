@@ -164,6 +164,8 @@ if uploaded_file is not None:
 
   from datetime import datetime, timedelta
 
+   from datetime import datetime, timedelta
+
     # Sección para definir el horario de trabajo
     st.header("Configuración del Horario de Trabajo")
     st.sidebar.header("Definir Lote de Trabajo")
@@ -196,9 +198,16 @@ if uploaded_file is not None:
     )
     end_hour = start_time_options[end_time_index]
     
-    # Convertir fecha y hora a datetime correctamente
-    start_datetime = datetime.combine(start_date, timedelta(hours=start_hour).seconds // 3600, timedelta(minutes=(start_hour % 1) * 60).seconds // 60)
-    end_datetime = datetime.combine(end_date, timedelta(hours=end_hour).seconds // 3600, timedelta(minutes=(end_hour % 1) * 60).seconds // 60)
+    # Convertir la selección del usuario a objetos datetime
+    start_datetime = datetime.combine(
+        start_date,
+        datetime.min.time()
+    ) + timedelta(hours=int(start_hour), minutes=int((start_hour % 1) * 60))
+    
+    end_datetime = datetime.combine(
+        end_date,
+        datetime.min.time()
+    ) + timedelta(hours=int(end_hour), minutes=int((end_hour % 1) * 60))
     
     st.sidebar.text(f"Inicio del lote: {start_date} {start_time_labels[start_time_index]} hrs")
     st.sidebar.text(f"Fin del lote: {end_date} {start_time_labels[end_time_index]} hrs")
@@ -218,6 +227,7 @@ if uploaded_file is not None:
         st.write(out_of_work_data)
     else:
         st.success("✅ No se detectaron eventos fuera del horario de trabajo.")
+
 
 
     # 3. Acciones críticas
