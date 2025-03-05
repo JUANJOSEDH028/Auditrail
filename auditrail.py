@@ -165,9 +165,7 @@ if uploaded_file is not None:
 
     # Sección de alertas
     st.header("Alertas del Sistema")
-    st.sidebar.header("Filtro de Franja Horaria")
-    start_hour = st.sidebar.slider("Hora de inicio (fuera de horario)", 0, 23, 22)
-    end_hour = st.sidebar.slider("Hora de fin (fuera de horario)", 0, 23, 6)
+    
 
 
     # Sección para definir el horario de trabajo
