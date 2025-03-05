@@ -82,6 +82,21 @@ if uploaded_file is not None:
     st.subheader("Cambios Digitales")
     st.write(digital_changes)
 
+# Comparativa analógico vs digital
+    change_types = {
+        'Analógico': analog_changes.shape[0],
+        'Digital': digital_changes.shape[0]
+    }
+    st.header("Comparativa de Cambios Analógicos y Digitales")
+    plt.figure(figsize=(6, 4))
+    plt.bar(change_types.keys(), change_types.values())
+    plt.title("Cambios Analógicos vs Digitales")
+    st.pyplot(plt)
+
+    # Crear columnas 'Date' y 'Hour' para análisis adicionales
+    data['Date'] = data['Marca de tiempo'].dt.date
+    data['Hour'] = data['Marca de tiempo'].dt.hour
+    
     # Cambios representativos durante el proceso
     
     representative_changes = filtered_data.groupby('Texto').size().sort_values(ascending=False).head(10)
@@ -105,20 +120,7 @@ if uploaded_file is not None:
     plt.title("Cambios por Usuario")
     st.pyplot(plt)
 
-    # Comparativa analógico vs digital
-    change_types = {
-        'Analógico': analog_changes.shape[0],
-        'Digital': digital_changes.shape[0]
-    }
-    st.header("Comparativa de Cambios Analógicos y Digitales")
-    plt.figure(figsize=(6, 4))
-    plt.bar(change_types.keys(), change_types.values())
-    plt.title("Cambios Analógicos vs Digitales")
-    st.pyplot(plt)
-
-    # Crear columnas 'Date' y 'Hour' para análisis adicionales
-    data['Date'] = data['Marca de tiempo'].dt.date
-    data['Hour'] = data['Marca de tiempo'].dt.hour
+    
 
     # Filtro interactivo para el Mapa de Calor en la barra lateral
     st.sidebar.header("Filtro de Fechas (Mapa de Calor)")
