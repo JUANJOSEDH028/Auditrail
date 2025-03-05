@@ -167,65 +167,43 @@ if uploaded_file is not None:
     st.header("Alertas del Sistema")
     
 
-
-    # Sección para definir el horario de trabajo
+# --- SECCIÓN: Configuración del Horario de Trabajo ---
     st.header("Configuración del Horario de Trabajo")
     st.sidebar.header("Definir Lote de Trabajo")
-    
-    # Selección de la fecha y hora de inicio del lote
+
+    # Selección de la fecha de inicio y fin del lote
     start_date = st.sidebar.date_input("Fecha de inicio del lote", data['Marca de tiempo'].min().date())
-    
-    # Generar opciones de tiempo en pasos de 30 minutos
-    start_time_options = [i / 2 for i in range(0, 48)]  # 0:00 a 23:30 en intervalos de 30 minutos
-    start_time_labels = [f"{int(h)}:{'30' if h % 1 == 0.5 else '00'}" for h in start_time_options]
-    
-    start_time_index = st.sidebar.slider(
-        "Hora de inicio del lote",
-        min_value=0,
-        max_value=len(start_time_options) - 1,
-        value=16,  # 8:00 AM por defecto
-        step=1
-    )
-    start_hour = start_time_options[start_time_index]
-    
-    # Selección de la fecha y hora de fin del lote
     end_date = st.sidebar.date_input("Fecha de fin del lote", data['Marca de tiempo'].max().date())
-    
-    end_time_index = st.sidebar.slider(
-        "Hora de fin del lote",
-        min_value=0,
-        max_value=len(start_time_options) - 1,
-        value=40,  # 8:00 PM por defecto
-        step=1
-    )
-    end_hour = start_time_options[end_time_index]
-    
+
+    # Ingreso manual de la hora y minutos
+    start_hour = st.sidebar.number_input("Hora de inicio (0-23)", min_value=0, max_value=23, value=15, step=1)
+    start_minute = st.sidebar.number_input("Minuto de inicio (0-59)", min_value=0, max_value=59, value=0, step=1)
+
+    end_hour = st.sidebar.number_input("Hora de fin (0-23)", min_value=0, max_value=23, value=13, step=1)
+    end_minute = st.sidebar.number_input("Minuto de fin (0-59)", min_value=0, max_value=59, value=0, step=1)
+
     # Convertir la selección del usuario a objetos datetime
-    start_datetime = datetime.combine(
-        start_date,
-        datetime.min.time()
-    ) + timedelta(hours=int(start_hour), minutes=int((start_hour % 1) * 60))
-    
-    end_datetime = datetime.combine(
-        end_date,
-        datetime.min.time()
-    ) + timedelta(hours=int(end_hour), minutes=int((end_hour % 1) * 60))
-    
-    st.sidebar.text(f"Inicio del lote: {start_date} {start_time_labels[start_time_index]} hrs")
-    st.sidebar.text(f"Fin del lote: {end_date} {start_time_labels[end_time_index]} hrs")
-    
-    # Filtrar eventos dentro del horario de trabajo
-    work_time_data = filtered_data[
-        (filtered_data['Marca de tiempo'] >= start_datetime) & 
-        (filtered_data['Marca de tiempo'] <= end_datetime)
+    start_datetime = datetime.combine(start_date, datetime.min.time()) + timedelta(hours=start_hour, minutes=start_minute)
+    end_datetime = datetime.combine(end_date, datetime.min.time()) + timedelta(hours=end_hour, minutes=end_minute)
+
+    st.sidebar.text(f"Inicio del lote: {start_datetime.strftime('%Y-%m-%d %H:%M')} hrs")
+    st.sidebar.text(f"Fin del lote: {end_datetime.strftime('%Y-%m-%d %H:%M')} hrs")
+
+    # Filtrar eventos dentro del horario de trabajo correctamente
+    work_time_data = data[
+        (data['Marca de tiempo'] >= start_datetime) & 
+        (data['Marca de tiempo'] <= end_datetime)
     ]
-    
-    # Identificar eventos fuera del horario de trabajo
-    out_of_work_data = filtered_data[~filtered_data.index.isin(work_time_data.index)]
-    
-    # Mostrar advertencias si hay eventos fuera del horario de trabajo
+
+    # Filtrar eventos fuera del horario de trabajo correctamente
+    out_of_work_data = data[
+        (data['Marca de tiempo'] < start_datetime) | 
+        (data['Marca de tiempo'] > end_datetime)
+    ]
+
+    # Mostrar advertencias solo si hay eventos fuera del horario establecido
     if not out_of_work_data.empty:
-        st.warning(f"⚠️ Eventos ocurridos fuera del horario de trabajo ({start_date} {start_time_labels[start_time_index]} - {end_date} {start_time_labels[end_time_index]}):")
+        st.warning(f"⚠️ Eventos ocurridos fuera del horario de trabajo ({start_datetime.strftime('%Y-%m-%d %H:%M')} - {end_datetime.strftime('%Y-%m-%d %H:%M')}):")
         st.write(out_of_work_data)
     else:
         st.success("✅ No se detectaron eventos fuera del horario de trabajo.")
