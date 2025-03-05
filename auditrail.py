@@ -168,11 +168,20 @@ if uploaded_file is not None:
     start_hour = st.sidebar.slider("Hora de inicio (fuera de horario)", 0, 23, 22)
     end_hour = st.sidebar.slider("Hora de fin (fuera de horario)", 0, 23, 6)
 
-    # 1. Cambios fuera de horario
-    night_changes = filtered_data[
-        (filtered_data['Marca de tiempo'].dt.hour >= start_hour) | 
-        (filtered_data['Marca de tiempo'].dt.hour <= end_hour)
-    ]
+# 1. Cambios fuera de horario
+    if start_hour <= end_hour:
+        # Caso normal: el horario fuera de producción no cruza la medianoche
+        night_changes = filtered_data[
+            (filtered_data['Marca de tiempo'].dt.hour >= start_hour) & 
+            (filtered_data['Marca de tiempo'].dt.hour <= end_hour)
+        ]
+    else:
+        # Caso en que el horario fuera de producción cruza la medianoche
+        night_changes = filtered_data[
+            (filtered_data['Marca de tiempo'].dt.hour >= start_hour) | 
+            (filtered_data['Marca de tiempo'].dt.hour <= end_hour)
+        ]
+
     if not night_changes.empty:
         st.warning(f"⚠️ Cambios realizados fuera de horario ({start_hour}:00 - {end_hour}:00):")
         st.write(night_changes)
