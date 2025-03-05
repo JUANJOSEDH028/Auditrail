@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+from datetime import datetime, timedelta
 
 # Título del dashboard
 st.title("Dashboard de Auditoría")
@@ -162,9 +163,8 @@ if uploaded_file is not None:
     else:
         st.warning("No hay datos disponibles para el rango de fechas seleccionado en el mapa de calor.")
 
-  from datetime import datetime, timedelta
 
-   from datetime import datetime, timedelta
+
 
     # Sección para definir el horario de trabajo
     st.header("Configuración del Horario de Trabajo")
