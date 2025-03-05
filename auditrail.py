@@ -95,10 +95,7 @@ if uploaded_file is not None:
     plt.xticks(rotation=45, ha='right')
     st.pyplot(plt)
 
-    # Cambios a lo largo del tiempo
-    time_series = filtered_data.set_index('Marca de tiempo').resample('D').size()
-    st.header("Cambios a lo Largo del Tiempo")
-    st.line_chart(time_series)
+  
 
     # Cambios por usuario (Distribución)
     user_changes = filtered_data['Usuario'].value_counts()
