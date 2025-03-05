@@ -85,7 +85,7 @@ if uploaded_file is not None:
     # Cambios representativos durante el proceso
     st.header("Cambios Representativos")
     representative_changes = filtered_data.groupby('Texto').size().sort_values(ascending=False).head(10)
-    st.bar_chart(representative_changes)
+   
 
     # Gráficos adicionales: Barras de cambios más frecuentes
     st.header("Gráficos de Cambios")
