@@ -87,38 +87,53 @@ if uploaded_file is not None:
     else:
         st.success("✅ No se detectaron eventos fuera del horario de trabajo.")
 
-    # --- GRÁFICO DE EVENTOS FUERA DEL HORARIO ---
-    if not out_of_work_data.empty:
-        # Asegurar que 'Marca de tiempo' está en formato datetime
-        out_of_work_data['Hora'] = out_of_work_data['Marca de tiempo'].dt.hour
+    # --- MAPA DE CALOR ---
+    st.sidebar.header("Filtro de Fechas (Mapa de Calor)")
+    min_date = data['Marca de tiempo'].min().date()
+    max_date = data['Marca de tiempo'].max().date()
 
-        # Contar la cantidad de eventos por hora
-        event_counts = out_of_work_data['Hora'].value_counts().sort_index()
+    start_date_heat, end_date_heat = st.sidebar.date_input(
+        "Seleccione el rango de fechas para el Mapa de Calor",
+        [min_date, max_date],
+        min_value=min_date,
+        max_value=max_date
+    )
 
-        # Obtener los textos de los eventos ocurridos en cada hora
-        event_labels = out_of_work_data.groupby('Hora')['Texto'].apply(lambda x: '\n'.join(x.unique()))
+    # Filtrar los datos dentro del rango seleccionado
+    filtered_range_data = data[
+        (data['Marca de tiempo'].dt.date >= start_date_heat) &
+        (data['Marca de tiempo'].dt.date <= end_date_heat)
+    ]
 
-        # Crear el gráfico de barras
-        plt.figure(figsize=(12, 6))
-        ax = sns.barplot(x=event_counts.index, y=event_counts.values, palette="Blues")
-        plt.xlabel("Hora del día")
-        plt.ylabel("Cantidad de eventos fuera del horario")
-        plt.title("Eventos fuera del horario de trabajo")
-        plt.xticks(range(0, 24))
+    if not filtered_range_data.empty:
+        # Crear columnas 'Date' y 'Hour' para análisis en el mapa de calor
+        filtered_range_data['Date'] = filtered_range_data['Marca de tiempo'].dt.date
+        filtered_range_data['Hour'] = filtered_range_data['Marca de tiempo'].dt.hour
 
-        # Agregar etiquetas de texto encima de cada barra con los nombres de los eventos
-        for i, (hour, count) in enumerate(zip(event_counts.index, event_counts.values)):
-            ax.text(i, count + 0.5, event_labels[hour], ha='center', fontsize=8, rotation=90)
+        all_hours = list(range(24))
+        heatmap_data = filtered_range_data.pivot_table(
+            index='Date', columns='Hour', aggfunc='size', fill_value=0
+        )
+        heatmap_data = heatmap_data.reindex(columns=all_hours, fill_value=0)
 
-        # Mostrar el gráfico en Streamlit
-        st.header("Eventos fuera del horario de trabajo")
+        st.header(f"Actividad por Hora ({start_date_heat} a {end_date_heat})")
+        plt.figure(figsize=(14, 6))
+        sns.heatmap(
+            heatmap_data,
+            cmap='coolwarm',
+            annot=True,
+            fmt="d",
+            cbar_kws={'label': 'Número de Cambios'}
+        )
+        plt.title("Mapa de Calor: Actividad por Hora y Día")
+        plt.xlabel("Hora del Día")
+        plt.ylabel("Fecha")
+        plt.xticks(rotation=45)
         st.pyplot(plt)
-
     else:
-        st.info("No hay eventos fuera del horario de trabajo para graficar.")
+        st.warning("No hay datos disponibles para el rango de fechas seleccionado en el mapa de calor.")
 
     # --- OTRAS SECCIONES DEL DASHBOARD ---
-    # Mostrar usuarios activos
     st.header("Usuarios del Sistema")
     users = work_time_data['Usuario'].unique()
     st.write("Usuarios activos:", users)
