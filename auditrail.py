@@ -39,7 +39,32 @@ if uploaded_file is not None:
 
     # Crear el DataFrame
     data = pd.DataFrame(data_rows, columns=header)
+# --- Filtros de Fecha y Hora en la barra lateral ---
+    st.sidebar.header("Filtros de Fecha y Hora")
 
+    # Selección de la fecha y hora de inicio
+    start_date = st.sidebar.date_input("Fecha inicio", data['Marca de tiempo'].min().date())
+    start_time = st.sidebar.time_input("Hora inicio", data['Marca de tiempo'].min().time())
+
+    # Selección de la fecha y hora de fin
+    end_date = st.sidebar.date_input("Fecha fin", data['Marca de tiempo'].max().date())
+    end_time = st.sidebar.time_input("Hora fin", data['Marca de tiempo'].max().time())
+
+    # Convertir fecha y hora seleccionadas a formato datetime
+    start_datetime = datetime.combine(start_date, start_time)
+    end_datetime = datetime.combine(end_date, end_time)
+
+    # Filtrar eventos dentro del horario de trabajo
+    work_time_data = data[
+        (data['Marca de tiempo'] >= start_datetime) & 
+        (data['Marca de tiempo'] <= end_datetime)
+    ]
+
+    # Filtrar eventos fuera del horario de trabajo
+    out_of_work_data = data[
+        (data['Marca de tiempo'] < start_datetime) | 
+        (data['Marca de tiempo'] > end_datetime)
+    ]
     # Convertir 'Marca de tiempo' a formato datetime
     data['Marca de tiempo'] = pd.to_datetime(data['Marca de tiempo'], errors='coerce')
  # --- OTRAS SECCIONES DEL DASHBOARD ---
@@ -78,32 +103,7 @@ if uploaded_file is not None:
     else:
         st.warning("La columna 'Usuario' no se encontró en los datos.")
 
-    # --- Filtros de Fecha y Hora en la barra lateral ---
-    st.sidebar.header("Filtros de Fecha y Hora")
-
-    # Selección de la fecha y hora de inicio
-    start_date = st.sidebar.date_input("Fecha inicio", data['Marca de tiempo'].min().date())
-    start_time = st.sidebar.time_input("Hora inicio", data['Marca de tiempo'].min().time())
-
-    # Selección de la fecha y hora de fin
-    end_date = st.sidebar.date_input("Fecha fin", data['Marca de tiempo'].max().date())
-    end_time = st.sidebar.time_input("Hora fin", data['Marca de tiempo'].max().time())
-
-    # Convertir fecha y hora seleccionadas a formato datetime
-    start_datetime = datetime.combine(start_date, start_time)
-    end_datetime = datetime.combine(end_date, end_time)
-
-    # Filtrar eventos dentro del horario de trabajo
-    work_time_data = data[
-        (data['Marca de tiempo'] >= start_datetime) & 
-        (data['Marca de tiempo'] <= end_datetime)
-    ]
-
-    # Filtrar eventos fuera del horario de trabajo
-    out_of_work_data = data[
-        (data['Marca de tiempo'] < start_datetime) | 
-        (data['Marca de tiempo'] > end_datetime)
-    ]
+    
 
     # Mostrar advertencias solo si hay eventos fuera del horario establecido
     if not out_of_work_data.empty:
