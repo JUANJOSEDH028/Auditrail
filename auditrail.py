@@ -42,7 +42,32 @@ if uploaded_file is not None:
 
     # Convertir 'Marca de tiempo' a formato datetime
     data['Marca de tiempo'] = pd.to_datetime(data['Marca de tiempo'], errors='coerce')
+ # --- OTRAS SECCIONES DEL DASHBOARD ---
+    st.header("Usuarios del Sistema")
+    users = work_time_data['Usuario'].unique()
+    st.write("Usuarios activos:", users)
 
+    # Cambios analógicos y digitales
+    st.header("Cambios Analógicos y Digitales")
+    analog_changes = work_time_data[work_time_data['Texto'].str.contains("analógico", case=False, na=False)]
+    digital_changes = work_time_data[work_time_data['Texto'].str.contains("digital", case=False, na=False)]
+
+    st.subheader("Cambios Analógicos")
+    st.write(analog_changes)
+
+    st.subheader("Cambios Digitales")
+    st.write(digital_changes)
+
+    # Comparativa analógico vs digital
+    st.header("Comparativa de Cambios Analógicos y Digitales")
+    change_types = {
+        'Analógico': analog_changes.shape[0],
+        'Digital': digital_changes.shape[0]
+    }
+    plt.figure(figsize=(6, 4))
+    plt.bar(change_types.keys(), change_types.values())
+    plt.title("Cambios Analógicos vs Digitales")
+    st.pyplot(plt)
     # Filtrar registros sin usuario válido
     if "Usuario" in data.columns:
         data = data[
@@ -133,32 +158,7 @@ if uploaded_file is not None:
     else:
         st.warning("No hay datos disponibles para el rango de fechas seleccionado en el mapa de calor.")
 
-    # --- OTRAS SECCIONES DEL DASHBOARD ---
-    st.header("Usuarios del Sistema")
-    users = work_time_data['Usuario'].unique()
-    st.write("Usuarios activos:", users)
-
-    # Cambios analógicos y digitales
-    st.header("Cambios Analógicos y Digitales")
-    analog_changes = work_time_data[work_time_data['Texto'].str.contains("analógico", case=False, na=False)]
-    digital_changes = work_time_data[work_time_data['Texto'].str.contains("digital", case=False, na=False)]
-
-    st.subheader("Cambios Analógicos")
-    st.write(analog_changes)
-
-    st.subheader("Cambios Digitales")
-    st.write(digital_changes)
-
-    # Comparativa analógico vs digital
-    st.header("Comparativa de Cambios Analógicos y Digitales")
-    change_types = {
-        'Analógico': analog_changes.shape[0],
-        'Digital': digital_changes.shape[0]
-    }
-    plt.figure(figsize=(6, 4))
-    plt.bar(change_types.keys(), change_types.values())
-    plt.title("Cambios Analógicos vs Digitales")
-    st.pyplot(plt)
+   
 
 else:
     st.info("Cargue un archivo CSV para comenzar el análisis.")
