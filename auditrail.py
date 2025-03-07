@@ -70,6 +70,10 @@ if uploaded_file is not None:
         (data['Marca de tiempo'] >= pd.Timestamp.combine(start_date, start_time)) &
         (data['Marca de tiempo'] <= pd.Timestamp.combine(end_date, end_time))
     ]
+    
+    # Crear columnas 'Date' y 'Hour' para análisis adicionales en el DataFrame filtrado
+    filtered_data['Date'] = filtered_data['Marca de tiempo'].dt.date
+    filtered_data['Hour'] = filtered_data['Marca de tiempo'].dt.hour
 
     # Mostrar usuarios activos
     st.header("Usuarios del Sistema")
@@ -97,10 +101,6 @@ if uploaded_file is not None:
     plt.bar(change_types.keys(), change_types.values())
     plt.title("Cambios Analógicos vs Digitales")
     st.pyplot(plt)
-
-    # Crear columnas 'Date' y 'Hour' para análisis adicionales
-    data['Date'] = data['Marca de tiempo'].dt.date
-    data['Hour'] = data['Marca de tiempo'].dt.hour
     
     # Cambios representativos durante el proceso
     representative_changes = filtered_data.groupby('Texto').size().sort_values(ascending=False).head(10)
@@ -121,14 +121,18 @@ if uploaded_file is not None:
     plt.title("Cambios por Usuario")
     st.pyplot(plt)
 
-    # Usar los mismos filtros para el mapa de calor que para los demás gráficos
+    # Mapa de calor con los datos filtrados
     all_hours = list(range(24))
-    heatmap_data = filtered_data.pivot_table(
-        index='Date', columns='Hour', aggfunc='size', fill_value=0
-    )
-    heatmap_data = heatmap_data.reindex(columns=all_hours, fill_value=0)
+    
+    # Asegurarse de que hay datos para el mapa de calor
+    if not filtered_data.empty and 'Date' in filtered_data.columns and 'Hour' in filtered_data.columns:
+        heatmap_data = filtered_data.pivot_table(
+            index='Date', columns='Hour', aggfunc='size', fill_value=0
+        )
+        
+        # Asegurarse de que todas las horas están representadas
+        heatmap_data = heatmap_data.reindex(columns=all_hours, fill_value=0)
 
-    if not heatmap_data.empty:
         st.header(f"Actividad por Hora ({start_date} a {end_date})")
         plt.figure(figsize=(14, 6))
         sns.heatmap(
@@ -152,6 +156,9 @@ if uploaded_file is not None:
     # --- SECCIÓN: Configuración del Horario de Trabajo ---
     st.header("Configuración del Horario de Trabajo")
     
+    # Asegurarse de que la columna 'Marca de tiempo' está en formato datetime en ambos DataFrames
+    data['Marca de tiempo'] = pd.to_datetime(data['Marca de tiempo'], errors='coerce')
+    
     # Filtrar eventos dentro del horario de trabajo correctamente
     work_time_data = data[
         (data['Marca de tiempo'] >= start_datetime) & 
@@ -173,31 +180,35 @@ if uploaded_file is not None:
     
     # 2. Usuarios con alta frecuencia de cambios
     user_activity = filtered_data['Usuario'].value_counts()
-    high_activity_users = user_activity[user_activity > user_activity.mean() + 2 * user_activity.std()]
-    if not high_activity_users.empty:
-        st.warning("⚠️ Usuarios con actividad inusualmente alta:")
-        st.write(high_activity_users)
+    if not user_activity.empty and len(user_activity) > 1:  # Asegurarse de que hay suficientes datos para calcular estadísticas
+        high_activity_users = user_activity[user_activity > user_activity.mean() + 2 * user_activity.std()]
+        if not high_activity_users.empty:
+            st.warning("⚠️ Usuarios con actividad inusualmente alta:")
+            st.write(high_activity_users)
         
     # Verificar si hay datos fuera del horario de trabajo
     if not out_of_work_data.empty:
-        # Asegurar que la columna 'Marca de tiempo' esté en formato datetime
-        out_of_work_data['Marca de tiempo'] = pd.to_datetime(out_of_work_data['Marca de tiempo'], errors='coerce')
-    
-        # Contar la cantidad de eventos por tipo de cambio (usando la columna 'Texto')
-        event_counts = out_of_work_data['Texto'].value_counts().head(10)  # Mostrar los 10 cambios más frecuentes
-    
-        # Crear el gráfico de barras con los nombres de los cambios
-        plt.figure(figsize=(12, 6))
-        sns.barplot(x=event_counts.index, y=event_counts.values, palette="Blues")
-        plt.xlabel("Tipo de cambio")
-        plt.ylabel("Cantidad de eventos fuera del horario")
-        plt.title("Eventos fuera del horario de trabajo por tipo de cambio")
-        plt.xticks(rotation=45, ha='right')  # Rotar las etiquetas para mejor visualización
-    
-        # Mostrar el gráfico en Streamlit
-        st.header("Eventos fuera del horario de trabajo")
-        st.pyplot(plt)
-    
+        # Asegurar que la columna 'Texto' existe en out_of_work_data
+        if 'Texto' in out_of_work_data.columns:
+            # Contar la cantidad de eventos por tipo de cambio (usando la columna 'Texto')
+            event_counts = out_of_work_data['Texto'].value_counts().head(10)  # Mostrar los 10 cambios más frecuentes
+            
+            if not event_counts.empty:
+                # Crear el gráfico de barras con los nombres de los cambios
+                plt.figure(figsize=(12, 6))
+                sns.barplot(x=event_counts.index, y=event_counts.values, palette="Blues")
+                plt.xlabel("Tipo de cambio")
+                plt.ylabel("Cantidad de eventos fuera del horario")
+                plt.title("Eventos fuera del horario de trabajo por tipo de cambio")
+                plt.xticks(rotation=45, ha='right')  # Rotar las etiquetas para mejor visualización
+                
+                # Mostrar el gráfico en Streamlit
+                st.header("Eventos fuera del horario de trabajo")
+                st.pyplot(plt)
+            else:
+                st.info("No hay suficientes datos para mostrar tipos de cambios fuera del horario de trabajo.")
+        else:
+            st.warning("La columna 'Texto' no está disponible para analizar los tipos de cambios.")
     else:
         st.info("No hay eventos fuera del horario de trabajo para graficar.")
         
@@ -225,5 +236,3 @@ if uploaded_file is not None:
             st.info("No se pudieron analizar los cambios fuera de rango debido a datos no numéricos.")
 else:
     st.info("Cargue un archivo CSV para comenzar el análisis.")
-
-
