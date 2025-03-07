@@ -174,7 +174,7 @@ if uploaded_file is not None:
     # Mostrar advertencias solo si hay eventos fuera del horario establecido
     if not out_of_work_data.empty:
         st.warning(f"⚠️ Eventos ocurridos fuera del horario de trabajo ({start_datetime.strftime('%Y-%m-%d %H:%M')} - {end_datetime.strftime('%Y-%m-%d %H:%M')}):")
-        st.write(out_of_work_data)
+        #st.write(out_of_work_data)
     else:
         st.success("✅ No se detectaron eventos fuera del horario de trabajo.")
     
