@@ -61,6 +61,10 @@ if uploaded_file is not None:
     start_time = st.sidebar.time_input("Hora inicio", data['Marca de tiempo'].min().time())
     end_time = st.sidebar.time_input("Hora fin", data['Marca de tiempo'].max().time())
 
+    # Convertir la selección del usuario a objetos datetime para el horario de trabajo
+    start_datetime = datetime.combine(start_date, start_time)
+    end_datetime = datetime.combine(end_date, end_time)
+
     # Filtrar datos según el rango seleccionado
     filtered_data = data[
         (data['Marca de tiempo'] >= pd.Timestamp.combine(start_date, start_time)) &
@@ -83,7 +87,7 @@ if uploaded_file is not None:
     st.subheader("Cambios Digitales")
     st.write(digital_changes)
 
-# Comparativa analógico vs digital
+    # Comparativa analógico vs digital
     change_types = {
         'Analógico': analog_changes.shape[0],
         'Digital': digital_changes.shape[0]
@@ -99,9 +103,7 @@ if uploaded_file is not None:
     data['Hour'] = data['Marca de tiempo'].dt.hour
     
     # Cambios representativos durante el proceso
-    
     representative_changes = filtered_data.groupby('Texto').size().sort_values(ascending=False).head(10)
-   
 
     # Gráficos adicionales: Barras de cambios más frecuentes
     st.header("Gráficos de Cambios")
@@ -111,8 +113,6 @@ if uploaded_file is not None:
     plt.xticks(rotation=45, ha='right')
     st.pyplot(plt)
 
-  
-
     # Cambios por usuario (Distribución)
     user_changes = filtered_data['Usuario'].value_counts()
     st.header("Distribución de Cambios por Usuario")
@@ -121,32 +121,15 @@ if uploaded_file is not None:
     plt.title("Cambios por Usuario")
     st.pyplot(plt)
 
-    
-
-    # Filtro interactivo para el Mapa de Calor en la barra lateral
-    st.sidebar.header("Filtro de Fechas (Mapa de Calor)")
-    min_date = data['Date'].min()
-    max_date = data['Date'].max()
-    start_date_heat, end_date_heat = st.sidebar.date_input(
-        "Seleccione el rango de fechas para el Mapa de Calor",
-        [min_date, max_date],
-        min_value=min_date,
-        max_value=max_date,
-        key="heatmap_date"
-    )
-
-    filtered_range_data = data[
-        (data['Date'] >= start_date_heat) & (data['Date'] <= end_date_heat)
-    ]
-
+    # Usar los mismos filtros para el mapa de calor que para los demás gráficos
     all_hours = list(range(24))
-    heatmap_data = filtered_range_data.pivot_table(
+    heatmap_data = filtered_data.pivot_table(
         index='Date', columns='Hour', aggfunc='size', fill_value=0
     )
     heatmap_data = heatmap_data.reindex(columns=all_hours, fill_value=0)
 
     if not heatmap_data.empty:
-        st.header(f"Actividad por Hora ({start_date_heat} a {end_date_heat})")
+        st.header(f"Actividad por Hora ({start_date} a {end_date})")
         plt.figure(figsize=(14, 6))
         sns.heatmap(
             heatmap_data,
@@ -165,30 +148,10 @@ if uploaded_file is not None:
 
     # Sección de alertas
     st.header("Alertas del Sistema")
-    
 
-# --- SECCIÓN: Configuración del Horario de Trabajo ---
+    # --- SECCIÓN: Configuración del Horario de Trabajo ---
     st.header("Configuración del Horario de Trabajo")
-    st.sidebar.header("Definir Lote de Trabajo")
-
-    # Selección de la fecha de inicio y fin del lote
-    start_date = st.sidebar.date_input("Fecha de inicio del lote", data['Marca de tiempo'].min().date())
-    end_date = st.sidebar.date_input("Fecha de fin del lote", data['Marca de tiempo'].max().date())
-
-    # Ingreso manual de la hora y minutos
-    start_hour = st.sidebar.number_input("Hora de inicio (0-23)", min_value=0, max_value=23, value=15, step=1)
-    start_minute = st.sidebar.number_input("Minuto de inicio (0-59)", min_value=0, max_value=59, value=0, step=1)
-
-    end_hour = st.sidebar.number_input("Hora de fin (0-23)", min_value=0, max_value=23, value=13, step=1)
-    end_minute = st.sidebar.number_input("Minuto de fin (0-59)", min_value=0, max_value=59, value=0, step=1)
-
-    # Convertir la selección del usuario a objetos datetime
-    start_datetime = datetime.combine(start_date, datetime.min.time()) + timedelta(hours=start_hour, minutes=start_minute)
-    end_datetime = datetime.combine(end_date, datetime.min.time()) + timedelta(hours=end_hour, minutes=end_minute)
-
-    st.sidebar.text(f"Inicio del lote: {start_datetime.strftime('%Y-%m-%d %H:%M')} hrs")
-    st.sidebar.text(f"Fin del lote: {end_datetime.strftime('%Y-%m-%d %H:%M')} hrs")
-
+    
     # Filtrar eventos dentro del horario de trabajo correctamente
     work_time_data = data[
         (data['Marca de tiempo'] >= start_datetime) & 
@@ -207,33 +170,29 @@ if uploaded_file is not None:
         st.write(out_of_work_data)
     else:
         st.success("✅ No se detectaron eventos fuera del horario de trabajo.")
-
     
-        # 2. Usuarios con alta frecuencia de cambios
-        user_activity = filtered_data['Usuario'].value_counts()
-        high_activity_users = user_activity[user_activity > user_activity.mean() + 2 * user_activity.std()]
-        if not high_activity_users.empty:
-            st.warning("⚠️ Usuarios con actividad inusualmente alta:")
-            st.write(high_activity_users)
-        # Verificar si hay datos fuera del horario de trabajo
-        # Verificar si hay datos fuera del horario de trabajo
+    # 2. Usuarios con alta frecuencia de cambios
+    user_activity = filtered_data['Usuario'].value_counts()
+    high_activity_users = user_activity[user_activity > user_activity.mean() + 2 * user_activity.std()]
+    if not high_activity_users.empty:
+        st.warning("⚠️ Usuarios con actividad inusualmente alta:")
+        st.write(high_activity_users)
+        
+    # Verificar si hay datos fuera del horario de trabajo
     if not out_of_work_data.empty:
         # Asegurar que la columna 'Marca de tiempo' esté en formato datetime
         out_of_work_data['Marca de tiempo'] = pd.to_datetime(out_of_work_data['Marca de tiempo'], errors='coerce')
     
-        # Extraer la hora de los eventos fuera del horario de trabajo
-        out_of_work_data['Hora'] = out_of_work_data['Marca de tiempo'].dt.hour
+        # Contar la cantidad de eventos por tipo de cambio (usando la columna 'Texto')
+        event_counts = out_of_work_data['Texto'].value_counts().head(10)  # Mostrar los 10 cambios más frecuentes
     
-        # Contar la cantidad de eventos por hora
-        event_counts = out_of_work_data['Hora'].value_counts().sort_index()
-    
-        # Crear el gráfico de barras
-        plt.figure(figsize=(10, 5))
+        # Crear el gráfico de barras con los nombres de los cambios
+        plt.figure(figsize=(12, 6))
         sns.barplot(x=event_counts.index, y=event_counts.values, palette="Blues")
-        plt.xlabel("Hora del día")
+        plt.xlabel("Tipo de cambio")
         plt.ylabel("Cantidad de eventos fuera del horario")
-        plt.title("Eventos fuera del horario de trabajo")
-        plt.xticks(range(0, 24))  # Asegurar etiquetas de 0 a 23 horas
+        plt.title("Eventos fuera del horario de trabajo por tipo de cambio")
+        plt.xticks(rotation=45, ha='right')  # Rotar las etiquetas para mejor visualización
     
         # Mostrar el gráfico en Streamlit
         st.header("Eventos fuera del horario de trabajo")
@@ -241,6 +200,7 @@ if uploaded_file is not None:
     
     else:
         st.info("No hay eventos fuera del horario de trabajo para graficar.")
+        
     # 3. Acciones críticas
     critical_keywords = ['error', 'fallo', 'alarma', 'crítico']
     critical_changes = filtered_data[
@@ -265,6 +225,5 @@ if uploaded_file is not None:
             st.info("No se pudieron analizar los cambios fuera de rango debido a datos no numéricos.")
 else:
     st.info("Cargue un archivo CSV para comenzar el análisis.")
-
 
 
